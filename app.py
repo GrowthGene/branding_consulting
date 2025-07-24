@@ -1,11 +1,18 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import plotly.express as px
-import plotly.graph_objects as go
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional
 import uuid
+
+# Plotly import with fallback
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    st.warning("Plotly is not available. Some charts will be replaced with simple metrics.")
 
 # 페이지 설정
 st.set_page_config(
@@ -305,15 +312,20 @@ def show_home():
             "참여율": [0.55, 0.50, 0.35, 0.25]
         }
         
-        fig = px.bar(
-            x=metrics_data["포맷"],
-            y=metrics_data["참여율"],
-            title="콘텐츠 포맷별 평균 참여율",
-            color=metrics_data["참여율"],
-            color_continuous_scale="Viridis"
-        )
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            fig = px.bar(
+                x=metrics_data["포맷"],
+                y=metrics_data["참여율"],
+                title="콘텐츠 포맷별 평균 참여율",
+                color=metrics_data["참여율"],
+                color_continuous_scale="Viridis"
+            )
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.markdown("#### 📊 콘텐츠 포맷별 평균 참여율")
+            for format_type, rate in zip(metrics_data["포맷"], metrics_data["참여율"]):
+                st.metric(format_type, f"{rate}%")
         
         st.info("💡 **인사이트**: 캐러셀 포스트가 가장 높은 참여율을 보여주며, 스토리텔링에 최적화된 포맷입니다.")
 
@@ -518,13 +530,17 @@ def show_results():
     
     with col2:
         st.markdown("### 📊 콘텐츠 믹스 비율")
-        fig = px.pie(
-            values=list(strategy.content_mix.values()),
-            names=list(strategy.content_mix.keys()),
-            title="권장 콘텐츠 구성"
-        )
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        st.plotly_chart(fig, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            fig = px.pie(
+                values=list(strategy.content_mix.values()),
+                names=list(strategy.content_mix.keys()),
+                title="권장 콘텐츠 구성"
+            )
+            fig.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            for content_type, percentage in strategy.content_mix.items():
+                st.metric(content_type, f"{percentage}%")
     
     # KPI 목표 설정
     st.markdown("### 🎯 주요 성과 지표 (KPI) 목표")
@@ -750,32 +766,43 @@ def show_dashboard():
     
     with col1:
         # 팔로워 성장 추이
-        dates = pd.date_range(start='2024-01-01', end='2024-07-24', freq='W')
-        followers = [1000 + i*15 + (i%4)*10 for i in range(len(dates))]
-        
-        fig = px.line(
-            x=dates, 
-            y=followers,
-            title="팔로워 성장 추이",
-            labels={'x': '날짜', 'y': '팔로워 수'}
-        )
-        fig.update_traces(line_color='#833AB4')
-        st.plotly_chart(fig, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            dates = pd.date_range(start='2024-01-01', end='2024-07-24', freq='W')
+            followers = [1000 + i*15 + (i%4)*10 for i in range(len(dates))]
+            
+            fig = px.line(
+                x=dates, 
+                y=followers,
+                title="팔로워 성장 추이",
+                labels={'x': '날짜', 'y': '팔로워 수'}
+            )
+            fig.update_traces(line_color='#833AB4')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.markdown("#### 📈 팔로워 성장 추이")
+            st.line_chart([1000, 1200, 1500, 1800, 2100, 2400])
     
     with col2:
         # 콘텐츠 성과 분석
-        content_types = ['릴스', '캐러셀', '스토리', '싱글포스트']
-        engagement_rates = [2.5, 2.8, 1.2, 1.8]
-        
-        fig = px.bar(
-            x=content_types,
-            y=engagement_rates,
-            title="콘텐츠 타입별 참여율",
-            labels={'x': '콘텐츠 타입', 'y': '참여율 (%)'},
-            color=engagement_rates,
-            color_continuous_scale="Viridis"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            content_types = ['릴스', '캐러셀', '스토리', '싱글포스트']
+            engagement_rates = [2.5, 2.8, 1.2, 1.8]
+            
+            fig = px.bar(
+                x=content_types,
+                y=engagement_rates,
+                title="콘텐츠 타입별 참여율",
+                labels={'x': '콘텐츠 타입', 'y': '참여율 (%)'},
+                color=engagement_rates,
+                color_continuous_scale="Viridis"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.markdown("#### 📊 콘텐츠 타입별 참여율")
+            chart_data = pd.DataFrame({
+                '참여율': [2.5, 2.8, 1.2, 1.8]
+            }, index=['릴스', '캐러셀', '스토리', '싱글포스트'])
+            st.bar_chart(chart_data)
     
     # 주간 리포트
     st.markdown("### 📋 주간 성과 리포트")
@@ -956,24 +983,39 @@ def show_resources():
         col1, col2 = st.columns(2)
         
         with col1:
-            fig = px.bar(
-                x=benchmark_data["업계"],
-                y=benchmark_data["평균_참여율"],
-                title="업계별 평균 참여율",
-                labels={'x': '업계', 'y': '참여율 (%)'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            if PLOTLY_AVAILABLE:
+                fig = px.bar(
+                    x=benchmark_data["업계"],
+                    y=benchmark_data["평균_참여율"],
+                    title="업계별 평균 참여율",
+                    labels={'x': '업계', 'y': '참여율 (%)'}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.markdown("#### 📊 업계별 평균 참여율")
+                chart_data = pd.DataFrame({
+                    '참여율': benchmark_data["평균_참여율"]
+                }, index=benchmark_data["업계"])
+                st.bar_chart(chart_data)
         
         with col2:
-            fig = px.scatter(
-                x=benchmark_data["평균_팔로워"],
-                y=benchmark_data["평균_참여율"],
-                text=benchmark_data["업계"],
-                title="팔로워 수 vs 참여율",
-                labels={'x': '평균 팔로워 수', 'y': '참여율 (%)'}
-            )
-            fig.update_traces(textposition="top center")
-            st.plotly_chart(fig, use_container_width=True)
+            if PLOTLY_AVAILABLE:
+                fig = px.scatter(
+                    x=benchmark_data["평균_팔로워"],
+                    y=benchmark_data["평균_참여율"],
+                    text=benchmark_data["업계"],
+                    title="팔로워 수 vs 참여율",
+                    labels={'x': '평균 팔로워 수', 'y': '참여율 (%)'}
+                )
+                fig.update_traces(textposition="top center")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.markdown("#### 📈 팔로워 수 vs 참여율")
+                scatter_data = pd.DataFrame({
+                    '팔로워 수': benchmark_data["평균_팔로워"],
+                    '참여율': benchmark_data["평균_참여율"]
+                }, index=benchmark_data["업계"])
+                st.scatter_chart(scatter_data)
         
         # 성과 기준표
         st.markdown("#### 📈 성과 평가 기준표")
