@@ -564,4 +564,430 @@ def show_results():
     with tab3:
         growth_weeks = [plan for plan in strategy.weekly_plans if plan["week"] >= 9]
         for week_plan in growth_weeks:
-            with st.expander(f"Week {week_plan['week']}: {week_plan['phase
+            with st.expander(f"Week {week_plan['week']}: {week_plan['phase']}"):
+                for task in week_plan['tasks']:
+                    st.markdown(f"- [ ] {task}")
+                st.markdown(f"**🎯 주요 KPI**: {week_plan['kpi_focus']}")
+    
+    # 권장 도구 및 리소스
+    st.markdown("### 🛠️ 권장 도구 및 리소스")
+    
+    tool_cols = st.columns(3)
+    for i, tool in enumerate(strategy.recommended_tools):
+        with tool_cols[i % 3]:
+            st.info(f"📱 {tool}")
+    
+    # 개인화된 브랜드 가이드 다운로드
+    st.markdown("### 📄 브랜드 가이드 문서")
+    
+    brand_guide = generate_brand_guide(profile, strategy)
+    
+    st.download_button(
+        label="📥 맞춤형 브랜드 가이드 다운로드",
+        data=brand_guide,
+        file_name=f"instagram_brand_guide_{profile.id[:8]}.txt",
+        mime="text/plain"
+    )
+
+def generate_brand_guide(profile: UserProfile, strategy: BrandStrategy) -> str:
+    """브랜드 가이드 문서 생성"""
+    guide = f"""
+📸 INSTAGRAM 브랜딩 가이드
+생성일: {datetime.now().strftime('%Y-%m-%d')}
+브랜드 ID: {profile.id[:8]}
+
+{'='*50}
+🎯 브랜드 전략 개요
+{'='*50}
+
+브랜드 타입: {strategy.brand_type}
+전략명: {strategy.strategy_name}
+비즈니스 단계: {SURVEY_DATA['business_stages'][profile.business_stage]}
+사업 분야: {SURVEY_DATA['business_types'][profile.business_type]}
+
+{'='*50}
+👥 타겟 오디언스
+{'='*50}
+
+연령대: {SURVEY_DATA['age_groups'][profile.target_age_group]}
+성별 분포: {profile.target_gender}
+주요 목표: {', '.join([SURVEY_DATA['primary_goals'][goal] for goal in profile.primary_goals])}
+
+{'='*50}
+🎨 브랜드 아이덴티티
+{'='*50}
+
+브랜드 아키타입: {SURVEY_DATA['brand_archetypes'][profile.brand_archetype]}
+
+브랜드 톤앤보이스:
+- 공식적(1) ←→ 캐주얼(10): {profile.tone_scores['formal_casual']}/10
+- 진지함(1) ←→ 재미있음(10): {profile.tone_scores['serious_fun']}/10  
+- 정중함(1) ←→ 과감함(10): {profile.tone_scores['polite_bold']}/10
+- 사실적(1) ←→ 열정적(10): {profile.tone_scores['factual_passionate']}/10
+
+{'='*50}
+📋 콘텐츠 전략
+{'='*50}
+
+콘텐츠 필러:
+{chr(10).join([f"{i+1}. {pillar}" for i, pillar in enumerate(strategy.content_pillars)])}
+
+콘텐츠 믹스 비율:
+{chr(10).join([f"- {format}: {ratio}%" for format, ratio in strategy.content_mix.items()])}
+
+월간 게시 빈도:
+{chr(10).join([f"- {format}: {freq}개" for format, freq in strategy.posting_frequency.items()])}
+
+{'='*50}
+🎯 성과 목표 (KPI)
+{'='*50}
+
+{chr(10).join([f"- {kpi.replace('_', ' ').title()}: {target}%" for kpi, target in strategy.kpi_targets.items()])}
+
+{'='*50}
+🛠️ 권장 도구
+{'='*50}
+
+{chr(10).join([f"- {tool}" for tool in strategy.recommended_tools])}
+
+{'='*50}
+💼 리소스 현황
+{'='*50}
+
+가용 시간: {profile.time_available}/주
+예산: {profile.budget}/월
+보유 도구: {', '.join(profile.tools_available) if profile.tools_available else '없음'}
+
+{'='*50}
+🏆 경쟁사 분석
+{'='*50}
+
+주요 경쟁사: {', '.join(profile.competitors) if profile.competitors else '미지정'}
+차별화 포인트: {', '.join(profile.differentiation) if profile.differentiation else '미지정'}
+
+{'='*50}
+📅 주간 실행 계획 (처음 4주)
+{'='*50}
+
+{chr(10).join([f"""
+Week {plan['week']}: {plan['phase']}
+목표: {plan['kpi_focus']}
+할 일:
+{chr(10).join([f"  - {task}" for task in plan['tasks']])}
+""" for plan in strategy.weekly_plans[:4]])}
+
+{'='*50}
+💡 성공을 위한 핵심 팁
+{'='*50}
+
+1. 일관성 유지: 시각적 스타일과 브랜드 보이스를 모든 콘텐츠에서 일관되게 유지하세요.
+
+2. 참여 우선: 좋아요보다는 댓글, 저장, 공유를 유도하는 콘텐츠에 집중하세요.
+
+3. 스토리 활용: 일상적이고 진정성 있는 모습을 스토리로 꾸준히 공유하세요.
+
+4. 데이터 기반 의사결정: 주간 인사이트를 반드시 확인하고 전략을 조정하세요.
+
+5. 커뮤니티 중심: 팔로워와의 진정한 소통과 관계 구축에 집중하세요.
+
+{'='*50}
+📞 지원 및 문의
+{'='*50}
+
+이 가이드는 Instagram Branding Expert 시스템에서 생성되었습니다.
+추가 문의사항이나 전략 조정이 필요한 경우 언제든 새로운 분석을 실행하세요.
+
+생성 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+    return guide
+
+def show_dashboard():
+    st.markdown('<div class="section-header"><h2>📈 성과 대시보드</h2></div>', unsafe_allow_html=True)
+    
+    if not st.session_state.survey_completed:
+        st.warning("먼저 브랜딩 설문조사를 완료해주세요.")
+        return
+    
+    # 가상 성과 데이터 (실제 구현시 Instagram API 연동)
+    st.markdown("### 📊 실시간 성과 모니터링")
+    
+    # KPI 메트릭
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            label="팔로워 수", 
+            value="1,234", 
+            delta="156 (+14.5%)",
+            delta_color="normal"
+        )
+    
+    with col2:
+        st.metric(
+            label="참여율", 
+            value="2.3%", 
+            delta="0.5% (+27.8%)",
+            delta_color="normal"
+        )
+    
+    with col3:
+        st.metric(
+            label="도달률", 
+            value="15,678", 
+            delta="2,345 (+17.6%)",
+            delta_color="normal"
+        )
+    
+    with col4:
+        st.metric(
+            label="웹사이트 클릭", 
+            value="89", 
+            delta="23 (+34.8%)",
+            delta_color="normal"
+        )
+    
+    # 성과 차트
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # 팔로워 성장 추이
+        dates = pd.date_range(start='2024-01-01', end='2024-07-24', freq='W')
+        followers = [1000 + i*15 + (i%4)*10 for i in range(len(dates))]
+        
+        fig = px.line(
+            x=dates, 
+            y=followers,
+            title="팔로워 성장 추이",
+            labels={'x': '날짜', 'y': '팔로워 수'}
+        )
+        fig.update_traces(line_color='#833AB4')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # 콘텐츠 성과 분석
+        content_types = ['릴스', '캐러셀', '스토리', '싱글포스트']
+        engagement_rates = [2.5, 2.8, 1.2, 1.8]
+        
+        fig = px.bar(
+            x=content_types,
+            y=engagement_rates,
+            title="콘텐츠 타입별 참여율",
+            labels={'x': '콘텐츠 타입', 'y': '참여율 (%)'},
+            color=engagement_rates,
+            color_continuous_scale="Viridis"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # 주간 리포트
+    st.markdown("### 📋 주간 성과 리포트")
+    
+    with st.expander("Week 30 (2024.07.15 - 2024.07.21) 성과 분석"):
+        st.markdown("""
+        #### 🎯 목표 달성 현황
+        - ✅ **팔로워 증가**: 156명 (목표: 100명) - 156% 달성
+        - ✅ **참여율**: 2.3% (목표: 2.0%) - 115% 달성  
+        - ❌ **웹사이트 트래픽**: 89클릭 (목표: 120클릭) - 74% 달성
+        
+        #### 🏆 최고 성과 콘텐츠
+        1. **릴스**: "5분 만에 브랜딩 팁" - 참여율 4.2%
+        2. **캐러셀**: "브랜드 스토리 템플릿" - 참여율 3.8%
+        3. **스토리**: "Q&A 세션" - 완료율 68%
+        
+        #### 🔧 다음 주 최적화 권장사항
+        - 웹사이트 트래픽 증대를 위해 CTA 문구 강화
+        - 릴스 콘텐츠 비중 확대 (현재 40% → 50%)
+        - 스토리 링크 스티커 활용 빈도 증가
+        """)
+    
+    # 개선 권장사항
+    st.markdown("### 💡 AI 기반 개선 권장사항")
+    
+    recommendations = [
+        {
+            "우선순위": "높음",
+            "영역": "콘텐츠 최적화", 
+            "권장사항": "릴스 콘텐츠 비중을 50%로 확대하여 도달률 20% 향상 예상",
+            "예상효과": "+20% 도달률"
+        },
+        {
+            "우선순위": "중간",
+            "영역": "참여 증대",
+            "권장사항": "캐러셀 포스트에 인터랙티브 요소 추가 (폴, 퀴즈 등)",
+            "예상효과": "+15% 참여율"
+        },
+        {
+            "우선순위": "중간", 
+            "영역": "트래픽 전환",
+            "권장사항": "스토리 하이라이트에 링크 추가 및 바이오 링크 최적화",
+            "예상효과": "+25% 웹사이트 클릭"
+        }
+    ]
+    
+    for rec in recommendations:
+        priority_color = {"높음": "🔴", "중간": "🟡", "낮음": "🟢"}[rec["우선순위"]]
+        st.markdown(f"""
+        {priority_color} **{rec['영역']}** ({rec['우선순위']} 우선순위)
+        - {rec['권장사항']}
+        - 예상 효과: {rec['예상효과']}
+        """)
+
+def show_resources():
+    st.markdown('<div class="section-header"><h2>📚 브랜딩 리소스 센터</h2></div>', unsafe_allow_html=True)
+    
+    # 탭으로 리소스 구분
+    tab1, tab2, tab3, tab4 = st.tabs(["🛠️ 도구", "📖 가이드", "🎨 템플릿", "📊 벤치마크"])
+    
+    with tab1:
+        st.markdown("### 🛠️ 추천 도구 및 앱")
+        
+        tools_categories = {
+            "콘텐츠 제작": [
+                {"이름": "Canva Pro", "용도": "디자인 및 템플릿", "가격": "월 12,000원", "추천도": "⭐⭐⭐⭐⭐"},
+                {"이름": "VSCO", "용도": "사진 편집 및 필터", "가격": "월 19,900원", "추천도": "⭐⭐⭐⭐"},
+                {"이름": "InShot", "용도": "비디오 편집", "가격": "무료/유료", "추천도": "⭐⭐⭐⭐"},
+            ],
+            "스케줄링": [
+                {"이름": "Later", "용도": "포스트 예약 및 스케줄링", "가격": "월 $18", "추천도": "⭐⭐⭐⭐⭐"},
+                {"이름": "Buffer", "용도": "소셜미디어 관리", "가격": "월 $6", "추천도": "⭐⭐⭐⭐"},
+                {"이름": "Hootsuite", "용도": "다중 플랫폼 관리", "가격": "월 $49", "추천도": "⭐⭐⭐"},
+            ],
+            "분석": [
+                {"이름": "Instagram Insights", "용도": "기본 성과 분석", "가격": "무료", "추천도": "⭐⭐⭐⭐"},
+                {"이름": "Sprout Social", "용도": "고급 분석", "가격": "월 $99", "추천도": "⭐⭐⭐⭐⭐"},
+                {"이름": "Iconosquare", "용도": "성과 추적", "가격": "월 $29", "추천도": "⭐⭐⭐⭐"},
+            ]
+        }
+        
+        for category, tools in tools_categories.items():
+            st.markdown(f"#### {category}")
+            for tool in tools:
+                col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
+                with col1:
+                    st.markdown(f"**{tool['이름']}**")
+                with col2:
+                    st.markdown(tool['용도'])
+                with col3:
+                    st.markdown(tool['가격'])
+                with col4:
+                    st.markdown(tool['추천도'])
+            st.markdown("---")
+    
+    with tab2:
+        st.markdown("### 📖 브랜딩 가이드")
+        
+        guides = [
+            {
+                "제목": "인스타그램 알고리즘 완전 정복 가이드",
+                "설명": "2024-2025년 최신 알고리즘 변화와 대응 전략",
+                "난이도": "초급-중급",
+                "소요시간": "15분"
+            },
+            {
+                "제목": "브랜드 아이덴티티 설정 워크북", 
+                "설명": "체계적인 브랜드 정체성 구축 단계별 가이드",
+                "난이도": "초급",
+                "소요시간": "30분"
+            },
+            {
+                "제목": "콘텐츠 기획 및 제작 마스터클래스",
+                "설명": "매력적인 콘텐츠 아이디어 발굴과 제작 노하우",
+                "난이도": "중급",
+                "소요시간": "45분"
+            },
+            {
+                "제목": "인플루언서 협업 전략 가이드",
+                "설명": "효과적인 파트너십 구축과 ROI 측정 방법",
+                "난이도": "고급", 
+                "소요시간": "25분"
+            }
+        ]
+        
+        for guide in guides:
+            with st.expander(f"📖 {guide['제목']}"):
+                st.markdown(f"**설명**: {guide['설명']}")
+                st.markdown(f"**난이도**: {guide['난이도']} | **소요시간**: {guide['소요시간']}")
+                st.button(f"가이드 읽기", key=f"guide_{guide['제목']}")
+    
+    with tab3:
+        st.markdown("### 🎨 디자인 템플릿")
+        
+        template_categories = {
+            "포스트 템플릿": [
+                "브랜드 소개 캐러셀",
+                "제품 소개 템플릿", 
+                "고객 후기 디자인",
+                "교육 콘텐츠 레이아웃",
+                "이벤트 홍보 템플릿"
+            ],
+            "스토리 템플릿": [
+                "Q&A 스토리 템플릿",
+                "비하인드 스토리 프레임",
+                "제품 사용법 가이드",
+                "투표 및 퀴즈 템플릿",
+                "링크 스티커 디자인"
+            ],
+            "하이라이트 커버": [
+                "미니멀 스타일",
+                "브랜드 컬러 세트", 
+                "아이콘 기반 디자인",
+                "타이포그래피 중심",
+                "일러스트 스타일"
+            ]
+        }
+        
+        for category, templates in template_categories.items():
+            st.markdown(f"#### {category}")
+            cols = st.columns(3)
+            for i, template in enumerate(templates):
+                with cols[i % 3]:
+                    st.markdown(f"🎨 {template}")
+                    st.button("다운로드", key=f"template_{category}_{i}")
+    
+    with tab4:
+        st.markdown("### 📊 업계 벤치마크 데이터")
+        
+        # 업계별 벤치마크 차트
+        benchmark_data = {
+            "업계": ["패션", "뷰티", "음식", "기술", "여행", "피트니스"],
+            "평균_팔로워": [15000, 25000, 8000, 12000, 18000, 22000],
+            "평균_참여율": [1.8, 2.1, 2.5, 1.2, 2.0, 2.8],
+            "월간_게시물": [20, 25, 15, 12, 18, 24]
+        }
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig = px.bar(
+                x=benchmark_data["업계"],
+                y=benchmark_data["평균_참여율"],
+                title="업계별 평균 참여율",
+                labels={'x': '업계', 'y': '참여율 (%)'}
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            fig = px.scatter(
+                x=benchmark_data["평균_팔로워"],
+                y=benchmark_data["평균_참여율"],
+                text=benchmark_data["업계"],
+                title="팔로워 수 vs 참여율",
+                labels={'x': '평균 팔로워 수', 'y': '참여율 (%)'}
+            )
+            fig.update_traces(textposition="top center")
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # 성과 기준표
+        st.markdown("#### 📈 성과 평가 기준표")
+        
+        performance_standards = pd.DataFrame({
+            "지표": ["참여율", "팔로워 증가율", "도달률", "스토리 완료율"],
+            "우수 (상위 10%)": ["3.0% 이상", "20% 이상", "30% 이상", "70% 이상"],
+            "양호 (상위 25%)": ["2.0-3.0%", "15-20%", "20-30%", "60-70%"],
+            "평균 (상위 50%)": ["1.0-2.0%", "10-15%", "10-20%", "50-60%"],
+            "개선 필요": ["1.0% 미만", "10% 미만", "10% 미만", "50% 미만"]
+        })
+        
+        st.dataframe(performance_standards, use_container_width=True)
+
+if __name__ == "__main__":
+    main()
